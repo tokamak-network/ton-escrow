@@ -50,6 +50,15 @@ contract TONEscrow is Ownable {
         emit DealAdded(_payee, _tonAmount, _payToken, _payTokenAmount);
     }
 
+    function delDeal(
+        address _payee
+    )
+        external
+        onlyOwner
+    {
+        delete deals[_payee];
+    }
+
     function withdraw(uint256 _amount) external onlyOwner {
         ton.transfer(msg.sender, _amount);
     }
