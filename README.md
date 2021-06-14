@@ -1,5 +1,6 @@
 # ton-escrow
 
 you want to test
-
-  npx hardhat test
+```
+npx hardhat test
+```
