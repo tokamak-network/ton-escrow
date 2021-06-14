@@ -1,3 +1,5 @@
+import { isAddress } from "@ethersproject/address"
+const { AddressZero } = require("@ethersproject/constants");
 const { ethers, network } = require('hardhat')
 const chai = require('chai')
 const { solidity } = require('ethereum-waffle')
@@ -17,16 +19,20 @@ describe("Token deploy", () => {
   let escrowOwner: any
   let account1: any
   let account2: any
+  let account3: any
+  let account4: any
   
   let ton: any
   let ERC20 : any
   let escrow : any
+  let prov : any
 
   before(async () => {
-    [ tonOwner, escrowOwner, account1, account2 ] = await ethers.getSigners();
+    [ tonOwner, escrowOwner, account1, account2, account3, account4 ] = await ethers.getSigners();
     // console.log("account1, account2 :", account1.address, ", " ,account2.address)
     const erc20Factory = await ethers.getContractFactory("mockERC20");
     const erc20_Factoey = await ethers.getContractFactory('mockERC20');
+    prov = ethers.getDefaultProvider();
     //ton deploy
     ton = await erc20Factory.deploy(
       TON_NAME,
@@ -86,11 +92,6 @@ describe("Token deploy", () => {
     // console.log(balance1.toNumber())
     expect(balance1).to.equal(0)
   });
-
-  // it("account1 have a ETH.balance ", async () => {
-  //   const balance1 = await account1.getBalance()
-  //   console.log(balance1.toString())
-  // });
 
   //tonOwer가 account1에 500TON을 전송합니다.
   it("TON tonOwner transfer to account1", async () => {
@@ -256,6 +257,48 @@ describe("Token deploy", () => {
     )
     await expect(tx).to.be.revertedWith("ERC20: transfer amount exceeds balance")
   });
+
+  it("owner addDeal ether and buy", async () => {
+    console.log("ETH 보내기전 escrowOwner : ", (await escrowOwner.getBalance()).toString())
+    const escorwA = (await escrowOwner.getBalance()).toString()
+    const dealResult = await escrow.connect(escrowOwner).addDeal(
+      account3.address,
+      50,
+      AddressZero,
+      15000000000
+    )
+    const escorwB = (await escrowOwner.getBalance()).toString()
+    const gasFee = escorwA - escorwB
+    console.log("gasFee : ", gasFee)
+    console.log("ETH 보내기전 account3.ether : ", (await account3.getBalance()).toString())
+    console.log("ETH 보내기전 account3.ton : ", (await ton.balanceOf(account3.address)).toNumber())
+    const tx = await account3.sendTransaction({
+      to: escrow.address,
+      value: 15000000000
+    })
+    const escorwC = (await escrowOwner.getBalance()).toString()
+    const escorwDiff = escorwC - escorwA + gasFee
+    console.log("escorwDiff : ", escorwDiff )
+    console.log("ETH 보낸 후  escrowOwner : ", (await escrowOwner.getBalance()).toString())
+    console.log("ETH 보낸 후  account3.ether : ", (await account3.getBalance()).toString())
+    console.log("ETH 보낸 후  account3.ton : ", (await ton.balanceOf(account3.address)).toNumber())
+  });
+
+  // it("account1 ETH transfer to account3 and ", async () => {
+  //   console.log("ETH 보내기전 account1 : ", (await account1.getBalance()).toString())
+  //   console.log("ETH 보내기전 account3 : ", (await account3.getBalance()).toString())
+  //   console.log("ETH 보내기전 account4 : ", (await account4.getBalance()).toString())
+  //   console.log("ETH 보내기전 escrow : ", (await prov.getBalance(escrow.address)).toString())
+  //   const tx = await account1.sendTransaction({
+  //     to: escrow.address,
+  //     value: 100000
+  //   })
+  //   console.log("ETH 보낸 후 account1 : ", (await account1.getBalance()).toString())
+  //   console.log("ETH 보낸 후 escrow : ", (await prov.getBalance(escrow.address)).toString())
+  //   // await expect(tx).to.be.revertedWith("ERC20: transfer amount exceeds balance")
+  // });
+  
+
 })
 
 export default {

@@ -69,6 +69,7 @@ contract TONEscrow is Ownable {
     )
         external
     {
+        require(_payToken != address(0));
         _buy(_payToken, _payTokenAmount);
     }
 
