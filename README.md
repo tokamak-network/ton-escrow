@@ -1,6 +1,6 @@
 # ton-escrow
 
-you want to test
+if you want to test
 ```
 npx hardhat test
 ```
