@@ -69,7 +69,10 @@ contract TONEscrow is Ownable {
     )
         external
     {
-        require(_payToken != address(0));
+        require(
+            _payToken != address(0),
+            "don't call buyer throgh ETH"
+        );
         _buy(_payToken, _payTokenAmount);
     }
 

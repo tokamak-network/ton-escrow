@@ -29,9 +29,7 @@ describe("Token deploy", () => {
 
   before(async () => {
     [ tonOwner, escrowOwner, account1, account2, account3, account4 ] = await ethers.getSigners();
-    // console.log("account1, account2 :", account1.address, ", " ,account2.address)
     const erc20Factory = await ethers.getContractFactory("mockERC20");
-    const erc20_Factoey = await ethers.getContractFactory('mockERC20');
     prov = ethers.getDefaultProvider();
     //ton deploy
     ton = await erc20Factory.deploy(
@@ -40,8 +38,9 @@ describe("Token deploy", () => {
       TON_INITIAL_SUPPLY
     );
     // console.log("ton : ", ton.address)
-
+      
     //ERC20 deploy
+    const erc20_Factoey = await ethers.getContractFactory('mockERC20');
     ERC20 = await erc20_Factoey.connect(account1).deploy(
       TOKEN_NAME,
       TOKEN_SYMBOL,
@@ -63,21 +62,21 @@ describe("Token deploy", () => {
   //   expect(balance1).to.equal(0)
   // });
 
-  // it("TON name", async () => {
-  //   const tokenName = await ton.name()
-  //   expect(tokenName).to.equal(TON_NAME)
-  // });
+  it("TON name", async () => {
+    const tokenName = await ton.name()
+    expect(tokenName).to.equal(TON_NAME)
+  });
 
-  // it("TON symbol", async () => {
-  //   const tokenSymbol= await ton.symbol()
-  //   expect(tokenSymbol).to.equal(TON_SYMBOL)
-  // });
+  it("TON symbol", async () => {
+    const tokenSymbol= await ton.symbol()
+    expect(tokenSymbol).to.equal(TON_SYMBOL)
+  });
 
-  // it("TON is totalSupply = TON_INITIAL_SUPPLY ", async () => {
-  //   const tokenSupply = await ton.totalSupply()
-  //   // console.log(tokenSupply.toNumber())
-  //   expect(tokenSupply).to.equal(TON_INITIAL_SUPPLY)
-  // });
+  it("TON is totalSupply = TON_INITIAL_SUPPLY ", async () => {
+    const tokenSupply = await ton.totalSupply()
+    // console.log(tokenSupply.toNumber())
+    expect(tokenSupply).to.equal(TON_INITIAL_SUPPLY)
+  });
 
   //tonOwner는 TON을 가지고 있습니다.
   it("tonOwner have a TON tonOwner.balance = TON_INITIAL_SUPPLY ", async () => {
@@ -94,19 +93,19 @@ describe("Token deploy", () => {
   });
 
   //tonOwer가 account1에 500TON을 전송합니다.
-  it("TON tonOwner transfer to account1", async () => {
-    const tx = await ton.connect(tonOwner).transfer(
-      account1.address,
-      500
-    )
-    await tx.wait()
+  // it("TON tonOwner transfer to account1", async () => {
+  //   const tx = await ton.connect(tonOwner).transfer(
+  //     account1.address,
+  //     500
+  //   )
+  //   await tx.wait()
 
-    const balance1 = await ton.balanceOf(tonOwner.address)
-    const balance2 = await ton.balanceOf(account1.address)
-    // console.log(balance.toNumber())
-    expect(balance1).to.equal(TON_INITIAL_SUPPLY-500)
-    expect(balance2).to.equal(500)
-  });
+  //   const balance1 = await ton.balanceOf(tonOwner.address)
+  //   const balance2 = await ton.balanceOf(account1.address)
+  //   // console.log(balance.toNumber())
+  //   expect(balance1).to.equal(TON_INITIAL_SUPPLY-500)
+  //   expect(balance2).to.equal(500)
+  // });
 
   //tonOwner가 escrowCA에 500TON을 전송합니다.
   it("tonOwner transfer to escrow CA", async () => {
@@ -119,7 +118,7 @@ describe("Token deploy", () => {
     const balance1 = await ton.balanceOf(tonOwner.address)
     const balance2 = await ton.balanceOf(escrow.address)
     // console.log(balance.toNumber())
-    expect(balance1).to.equal(TON_INITIAL_SUPPLY-1000)
+    expect(balance1).to.equal(TON_INITIAL_SUPPLY-500)
     expect(balance2).to.equal(500)
   });
 
@@ -141,7 +140,7 @@ describe("Token deploy", () => {
     expect(owner).to.not.equal(account1.address)
   });
   
-  //accoun1이 ERC20을 150만큼 입금하면 50만큼 ton을 받을 수 있는 addDeal을 만듭니다.
+  //escrowOwner가 account1이 ERC20을 150만큼 입금하면 50만큼 ton을 받을 수 있는 addDeal을 만듭니다.
   it("TONEscrow.owner can addDeal", async () => {
     const tx = await escrow.connect(escrowOwner).addDeal(
       account1.address,
@@ -158,16 +157,37 @@ describe("Token deploy", () => {
     await expect(dealResult.payToken).to.equal(ERC20.address)
   });
 
-  //account1은 addDeal을 할 수 없습니다.
-  it("account1 can't addDeal", async () => {
-    const dealResult = escrow.connect(account1).addDeal(
-      account2.address,
+  //owner가 아니면 addDeal을 할 수 없습니다.
+  it("not owner can't addDeal", async () => {
+    const dealResult = escrow.connect(account2).addDeal(
+      account1.address,
       50,
       ERC20.address,
       150
     )
     await expect(dealResult).to.be.revertedWith("Ownable: caller is not the owner")
   });
+
+  //owner가 아니면 delDeal을 할 수 없습니다.
+  it("not owner can't delDeal", async () => {
+    const dealResult = escrow.connect(account2).delDeal(
+      account1.address
+    )
+    await expect(dealResult).to.be.revertedWith("Ownable: caller is not the owner")
+  });
+
+  //escrowOwner은 delDeal을 할 수 있습니다.
+  it("escrowOwner can delDeal", async () => {
+    const tx = escrow.connect(escrowOwner).delDeal(
+      account1.address
+    )
+    const dealResult = await escrow.connect(escrowOwner).deals(account1.address)
+    // console.log(await dealResult)
+    await expect(dealResult.tonAmount.toNumber()).to.equal(0)
+    await expect(dealResult.payTokenAmount.toNumber()).to.equal(0)
+    await expect(dealResult.payToken).to.equal(AddressZero)
+  });
+
 
   //account1이 ERC20을 가지고 있습니다.
   it("account1 have the ERC20", async () => {
@@ -176,8 +196,28 @@ describe("Token deploy", () => {
     expect(balance1).to.equal(TOKEN_INITIAL_SUPPLY)
   });
 
-  //approve하지않고 구매
+  //approve && addDeal 안되어 있을 때 구매
+  it("account1 can't buy the Ton before approve && addDeal", async () => {
+    const buyResult = escrow.connect(account1).buy(
+      ERC20.address,
+      150
+    )
+    await expect(buyResult).to.be.revertedWith("wrong token")
+  });
+
+  //addDeal은 되어있고 approve는 안되어 있을 때 구매
   it("account1 can't buy the Ton before approve", async () => {
+    const tx = await escrow.connect(escrowOwner).addDeal(
+      account1.address,
+      50,
+      ERC20.address,
+      150
+    )
+    const dealResult = await escrow.connect(escrowOwner).deals(account1.address)
+    await expect(dealResult.tonAmount.toNumber()).to.equal(50)
+    await expect(dealResult.payTokenAmount.toNumber()).to.equal(150)
+    await expect(dealResult.payToken).to.equal(ERC20.address)
+
     const buyResult = escrow.connect(account1).buy(
       ERC20.address,
       150
@@ -185,55 +225,73 @@ describe("Token deploy", () => {
     await expect(buyResult).to.be.revertedWith("ERC20: transfer amount exceeds allowance")
   });
 
-  //approve후 allownance 확인(account2 approve 100)
-  it("account2 approve the escrow CA and check the allowance", async () => {
-    const tx = await ERC20.connect(account2).approve(
-      escrow.address,
-      100
-    )
-
-    const tx2 = await ERC20.allowance(
-      account2.address, 
-      escrow.address
-    )
-
-    await expect(tx2.toNumber()).to.equal(100)
-  });
-
-  // account1이 escrow에게 150ERC20을 approve 후 buy합니다.(결과는 escrow ton : 450, escrowOwner ERC20 : 150, account1 ton : 550)
-  it("account1 approve the TonEscrow and buy ton", async () => {
+  //addDeal은 안되어있고 approve만 되어있을 때 구매
+  it("account1 can't buy the Ton before addDeal", async () => {
     const tx = await ERC20.connect(account1).approve(
       escrow.address,
       150
     )
-    // console.log("TON사기 전 : ", (await ton.balanceOf(account1.address)).toNumber())
 
-    const tx2 = await ERC20.allowance(account1.address, escrow.address)
-    // console.log(await tx2.toNumber())
+    const tx2 = escrow.connect(escrowOwner).delDeal(
+      account1.address
+    )
+    const dealResult = await escrow.connect(escrowOwner).deals(account1.address)
+    await expect(dealResult.tonAmount.toNumber()).to.equal(0)
+    await expect(dealResult.payTokenAmount.toNumber()).to.equal(0)
+    await expect(dealResult.payToken).to.equal(AddressZero)
+
+    const buyResult = escrow.connect(account1).buy(
+      ERC20.address,
+      150
+    )
+    await expect(buyResult).to.be.revertedWith("wrong token")
+  });
+
+  //addDeal과 approve 둘다 되어있을때 구매 (addDeal에서의 입력이 맞아야한다.)
+  it("account1 can buy after addDeal and approve ", async () => {
+    const tx = await escrow.connect(escrowOwner).addDeal(
+      account1.address,
+      50,
+      ERC20.address,
+      150
+    )
+    const dealResult = await escrow.connect(escrowOwner).deals(account1.address)
+    await expect(dealResult.tonAmount.toNumber()).to.equal(50)
+    await expect(dealResult.payTokenAmount.toNumber()).to.equal(150)
+    await expect(dealResult.payToken).to.equal(ERC20.address)
+
+    const tx2 = await ERC20.connect(account1).approve(
+      escrow.address,
+      150
+    )
 
     const buyTx = await escrow.connect(account1).buy(
       ERC20.address,
       150
     )
-    // console.log("TON산 후 : ", (await ton.balanceOf(account1.address)).toNumber())
 
     await expect((await ton.balanceOf(escrow.address)).toNumber()).to.equal(450)
     await expect((await ERC20.balanceOf(escrowOwner.address)).toNumber()).to.equal(150)
-    await expect((await ton.balanceOf(account1.address)).toNumber()).to.equal(550)
+    await expect((await ton.balanceOf(account1.address)).toNumber()).to.equal(50)
   });
 
-  //approve 하여도 addDeal이 안되어 있으면 살 수 없습니다.(approve는 앞에서 미리 해둠 100)
-  it("don't addDeal don't buy", async () => {
-    const buyResult = escrow.connect(account2).buy(
-      ERC20.address,
-      100
-    )
+  //approve후 allownance 확인(account2 approve 100)
+  // it("account2 approve the escrow CA and check the allowance", async () => {
+  //   const tx = await ERC20.connect(account2).approve(
+  //     escrow.address,
+  //     100
+  //   )
 
-    await expect(buyResult).to.be.revertedWith("wrong token")
-  });
+  //   const tx2 = await ERC20.allowance(
+  //     account2.address, 
+  //     escrow.address
+  //   )
 
-  //addDeal되어도 buy함수 호출 시 가격이 틀리면 살 수 없습니다.
-  it("should enter addDeal and buy exactly.", async () => {
+  //   await expect(tx2.toNumber()).to.equal(100)
+  // });
+
+  //addDeal와 approve했을 때 buy함수 호출 시 가격이 틀리면 살 수 없습니다.
+  it("should enter addDeal and buy exactly amount.", async () => {
     const dealResult = escrow.connect(escrowOwner).addDeal(
       account2.address,
       50,
@@ -241,48 +299,119 @@ describe("Token deploy", () => {
       150
     )
 
-    const tx = escrow.connect(account2).buy(
+    const tx = await ERC20.connect(account2).approve(
+      escrow.address,
+      100
+    )
+
+    const tx2 = escrow.connect(account2).buy(
       ERC20.address,
       100
     )
 
-    await expect(tx).to.be.revertedWith("wrong amount")
+    await expect(tx2).to.be.revertedWith("wrong amount")
   });
 
-  // approve를 넘는 수량을 살 수 없습니다.
-  it("account1 can buy the Ton through TONEscrow", async () => {
-    const tx = escrow.connect(account2).buy(
+  //addDeal와 approve했을 때 buy함수 호출 시 입금주소가 틀리면 살 수 없습니다.
+  it("should enter addDeal and buy exactly tokenAddress.", async () => {
+    const dealResult = escrow.connect(escrowOwner).addDeal(
+      account2.address,
+      50,
       ERC20.address,
       150
     )
-    await expect(tx).to.be.revertedWith("ERC20: transfer amount exceeds balance")
+
+    const tx = await ERC20.connect(account2).approve(
+      escrow.address,
+      150
+    )
+
+    const tx2 = escrow.connect(account2).buy(
+      ton.address,
+      150
+    )
+
+    await expect(tx2).to.be.revertedWith("wrong token")
+  });
+  
+  // approve를 넘는 수량을 살 수 없습니다.
+  it("account1 can buy the Ton through TONEscrow", async () => {
+    const tx = await ERC20.connect(account2).approve(
+      escrow.address,
+      100
+    ) 
+    const tx2 = escrow.connect(account2).buy(
+      ERC20.address,
+      150
+    )
+    await expect(tx2).to.be.revertedWith("ERC20: transfer amount exceeds balance")
   });
 
-  it("owner addDeal ether and buy", async () => {
-    console.log("ETH 보내기전 escrowOwner : ", (await escrowOwner.getBalance()).toString())
-    const escorwA = (await escrowOwner.getBalance()).toString()
+  //ETH기준으로 addDeal생성 후 buy함수 호출 시
+  it("owner can addDeal and account4 call the buy", async () => {
     const dealResult = await escrow.connect(escrowOwner).addDeal(
-      account3.address,
+      account4.address,
       50,
       AddressZero,
       15000000000
     )
-    const escorwB = (await escrowOwner.getBalance()).toString()
-    const gasFee = escorwA - escorwB
-    console.log("gasFee : ", gasFee)
-    console.log("ETH 보내기전 account3.ether : ", (await account3.getBalance()).toString())
-    console.log("ETH 보내기전 account3.ton : ", (await ton.balanceOf(account3.address)).toNumber())
-    const tx = await account3.sendTransaction({
+    const tx2 = escrow.connect(account4).buy(
+      AddressZero,
+      15000000000
+    )
+    await expect(tx2).to.be.revertedWith("don't call buyer throgh ETH")
+  });
+
+  //ETH기준으로 addDeal생성 후 tx전송 시 amount가 틀릴 경우
+  it("account4 transfer to Escrow CA but amount diff", async () => {
+    const tx = account4.sendTransaction({
+      to: escrow.address,
+      value: 10000000000
+    })
+    await expect(tx).to.be.revertedWith("wrong amount")
+  });
+
+  //ETH기준으로 addDeal생성 후 제대로 전송
+  it("account4 transfer to Escrow CA but amount diff", async () => {
+    const escrowA = (await escrowOwner.getBalance()).toString()
+    // console.log(escrowA)
+    const tx = await account4.sendTransaction({
       to: escrow.address,
       value: 15000000000
     })
-    const escorwC = (await escrowOwner.getBalance()).toString()
-    const escorwDiff = escorwC - escorwA + gasFee
-    console.log("escorwDiff : ", escorwDiff )
-    console.log("ETH 보낸 후  escrowOwner : ", (await escrowOwner.getBalance()).toString())
-    console.log("ETH 보낸 후  account3.ether : ", (await account3.getBalance()).toString())
-    console.log("ETH 보낸 후  account3.ton : ", (await ton.balanceOf(account3.address)).toNumber())
+    const escrowB = (await escrowOwner.getBalance()).toString()
+    const escrowC = escrowB - escrowA
+    // console.log(escrowC)
+    await expect((await ton.balanceOf(account4.address)).toNumber()).to.equal(50)
+    await expect(escrowC).to.be.above(15000000000)
   });
+
+  // //escrowOwner가 addDeal을 한 후 account3가 escrow CA에 ETH를 전송하여서 TON을 구매합니다.
+  // it("owner addDeal ether and user can buy", async () => {
+  //   // console.log("ETH 보내기전 escrowOwner : ", (await escrowOwner.getBalance()).toString())
+  //   const escorwA = (await escrowOwner.getBalance()).toString()
+  //   const dealResult = await escrow.connect(escrowOwner).addDeal(
+  //     account3.address,
+  //     50,
+  //     AddressZero,
+  //     15000000000
+  //   )
+  //   const escorwB = (await escrowOwner.getBalance()).toString()
+  //   const gasFee = escorwA - escorwB
+  //   // console.log("gasFee : ", gasFee)
+  //   // console.log("ETH 보내기전 account3.ether : ", (await account3.getBalance()).toString())
+  //   // console.log("ETH 보내기전 account3.ton : ", (await ton.balanceOf(account3.address)).toNumber())
+  //   const tx = await account3.sendTransaction({
+  //     to: escrow.address,
+  //     value: 15000000000
+  //   })
+  //   const escorwC = (await escrowOwner.getBalance()).toString()
+  //   const escorwDiff = escorwC - escorwA + gasFee
+  //   // console.log("escorwDiff : ", escorwDiff )
+  //   // console.log("ETH 보낸 후  escrowOwner : ", (await escrowOwner.getBalance()).toString())
+  //   // console.log("ETH 보낸 후  account3.ether : ", (await account3.getBalance()).toString())
+  //   // console.log("ETH 보낸 후  account3.ton : ", (await ton.balanceOf(account3.address)).toNumber())
+  // });
 
   // it("account1 ETH transfer to account3 and ", async () => {
   //   console.log("ETH 보내기전 account1 : ", (await account1.getBalance()).toString())

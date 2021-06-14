@@ -467,8 +467,8 @@
       ]
     },
     "/Users/harvey/Documents/GitHub/ton-escrow/contracts/TONEscrow.sol": {
-      "lastModificationDate": 1623662206272,
-      "contentHash": "d41a58168401ceb0baf8a48a8eded59f",
+      "lastModificationDate": 1623662570196,
+      "contentHash": "6b6a729b44751adfd8e530e1e2d4320c",
       "sourceName": "contracts/TONEscrow.sol",
       "solcConfig": {
         "version": "0.8.0",
