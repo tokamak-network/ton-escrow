@@ -331,15 +331,9 @@ before(async () => {
 
   //ETH기준으로 addDeal생성 후 제대로 전송
   it("user transfer to Escrow CA exactly", async () => {
-    const escrowA = (await escrowOwner.getBalance()).toString()
-    const tx = await account4.sendTransaction({
-      to: escrow.address,
-      value: 15000000000
-    })
-    const escrowB = (await escrowOwner.getBalance()).toString()
-    const escrowC = escrowB - escrowA
-    await expect((await ton.balanceOf(account4.address)).toNumber()).to.equal(50)
-    await expect(escrowC).to.be.above(15000000000)
+    await expect(() =>
+      account4.sendTransaction({to:escrow.address, gasPrice: 0, value: 15000000000})
+    ).to.changeBalance(escrowOwner, 15000000000)
   });
 
 
