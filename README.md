@@ -132,8 +132,8 @@ before(async () => {
     await expect(dealResult.payToken).to.equal(ERC20.address)
   });
 
-  //account1은 addDeal을 할 수 없습니다.
-  it("account1 can't addDeal", async () => {
+  //owner가 아니면 addDeal을 할 수 없습니다.
+  it("not owner can't addDeal", async () => {
     const dealResult = escrow.connect(account1).addDeal(
       account2.address,
       50,
@@ -288,7 +288,7 @@ before(async () => {
   });
   
   // approve를 넘는 수량을 살 수 없습니다.
-  it("account1 can buy the Ton through TONEscrow", async () => {
+  it("A user cannot buy more than allowance", async () => {
     const tx = await ERC20.connect(account2).approve(
       escrow.address,
       100
@@ -307,7 +307,7 @@ before(async () => {
 ## addDeal 에 따른 ETH 테스트 <br>
 ```javascript
   //ETH기준으로 addDeal생성 후 buy함수 호출 시
-  it("account1 can buy the Ton through TONEscrow", async () => {
+  it("owner can addDeal and account4 call the function buy", async () => {
     const dealResult = await escrow.connect(escrowOwner).addDeal(
       account4.address,
       50,
@@ -331,7 +331,7 @@ before(async () => {
   });
 
   //ETH기준으로 addDeal생성 후 제대로 전송
-  it("account4 transfer to Escrow CA but amount diff", async () => {
+  it("account4 transfer to Escrow CA exactly", async () => {
     const escrowA = (await escrowOwner.getBalance()).toString()
     const tx = await account4.sendTransaction({
       to: escrow.address,
