@@ -120,6 +120,8 @@ contract TONEscrow is Ownable {
         if (_payToken != address(0)) {
             IERC20 payToken = IERC20(_payToken);
             uint256 balance1 = payToken.balanceOf(owner());
+            uint256 tokenAllowance = payToken.allowance(msg.sender, address(this));
+            require(tokenAllowance >= _payTokenAmount, "ERC20: transfer amount exceeds allowance");
             payToken.transferFrom(msg.sender, owner(), _payTokenAmount);
             require(
                 payToken.balanceOf(owner()) - balance1 == _payTokenAmount,
