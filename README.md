@@ -105,8 +105,8 @@ before(async () => {
     expect(owner).to.equal(escrowOwner.address)
   });
 
-  //TONEscrow의 owner는 account1이 아닙니다.
-  it("TONEscrow.owner is not account1", async () => {
+  //TONEscrow의 owner는 user가 아닙니다.
+  it("TONEscrow.owner is not user", async () => {
     const owner = await escrow.owner()
     expect(owner).to.not.equal(account1.address)
   });
@@ -117,7 +117,7 @@ before(async () => {
 
 ## addDeal,delDeal기능 및 Owner만 가능한지 확인<br>
 ```javascript
-  //escrowOwner가 account1이 ERC20을 150만큼 입금하면 50만큼 ton을 받을 수 있는 addDeal을 만듭니다.
+  //escrowOwner는 user가 ERC20을 150만큼 입금하면 50만큼 ton을 받을 수 있는 addDeal을 만듭니다.
   it("TONEscrow.owner can addDeal", async () => {
     const tx = await escrow.connect(escrowOwner).addDeal(
       account1.address,
@@ -170,7 +170,7 @@ before(async () => {
 
 ```javascript
   //approve && addDeal 안되어 있을 때 구매
-  it("account1 can't buy the Ton before approve && addDeal", async () => {
+  it("user can't buy the Ton before approve && addDeal", async () => {
     const buyResult = escrow.connect(account1).buy(
       ERC20.address,
       150
@@ -179,7 +179,7 @@ before(async () => {
   });
 
   //addDeal은 되어있고 approve는 안되어 있을 때 구매
-  it("account1 can't buy the Ton before approve", async () => {
+  it("user can't buy the Ton before approve", async () => {
     const tx = await escrow.connect(escrowOwner).addDeal(
       account1.address,
       50,
@@ -199,7 +199,7 @@ before(async () => {
   });
 
   //addDeal은 안되어있고 approve만 되어있을 때 구매
-  it("account1 can't buy the Ton before addDeal", async () => {
+  it("user can't buy the Ton before addDeal", async () => {
     const tx = await ERC20.connect(account1).approve(
       escrow.address,
       150
@@ -221,7 +221,7 @@ before(async () => {
   });
 
   //addDeal과 approve 둘다 되어있을때 구매(addDeal에서의 입력이 맞아야한다.)
-  it("account1 can buy after addDeal and approve ", async () => {
+  it("user can buy after addDeal and approve ", async () => {
     const tx = await escrow.connect(escrowOwner).addDeal(
       account1.address,
       50,
@@ -307,7 +307,7 @@ before(async () => {
 ## addDeal 에 따른 ETH 테스트 <br>
 ```javascript
   //ETH기준으로 addDeal생성 후 buy함수 호출 시
-  it("owner can addDeal and account4 call the function buy", async () => {
+  it("owner can addDeal and user call the function buy", async () => {
     const dealResult = await escrow.connect(escrowOwner).addDeal(
       account4.address,
       50,
@@ -322,7 +322,7 @@ before(async () => {
   });
   
   //ETH기준으로 addDeal생성 후 tx전송 시 amount가 틀릴 경우
-  it("account4 transfer to Escrow CA but amount diff", async () => {
+  it("user transfer to Escrow CA but amount diff", async () => {
     const tx = account4.sendTransaction({
       to: escrow.address,
       value: 10000000000
@@ -331,7 +331,7 @@ before(async () => {
   });
 
   //ETH기준으로 addDeal생성 후 제대로 전송
-  it("account4 transfer to Escrow CA exactly", async () => {
+  it("user transfer to Escrow CA exactly", async () => {
     const escrowA = (await escrowOwner.getBalance()).toString()
     const tx = await account4.sendTransaction({
       to: escrow.address,
