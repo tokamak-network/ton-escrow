@@ -5,7 +5,6 @@ if you want to test
 npx hardhat test
 ```
 <br>
-궁금증.. ton이 transfer함수는 상관없는지? 
 
 ## 초기 설정
 
