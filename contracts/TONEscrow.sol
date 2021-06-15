@@ -20,6 +20,13 @@ contract TONEscrow is Ownable {
         uint256 payTokenAmount
     );
 
+    event DealDeled(
+        address payee,
+        uint256 tonAmount,
+        address payToken,
+        uint256 payTokenAmount
+    );
+
     struct Deal {
         uint256 tonAmount;
         uint256 payTokenAmount;
@@ -55,11 +62,19 @@ contract TONEscrow is Ownable {
     )
         external
         onlyOwner
-    {
+    {   
+        Deal storage deal = deals[_payee];
+
         delete deals[_payee];
+
+        emit DealDeled(_payee, deal.tonAmount, deal.payToken, deal.payTokenAmount);
     }
 
     function withdraw(uint256 _amount) external onlyOwner {
+        require(
+            ton.balanceOf(address(this)) > _amount,
+            "don't have ton amount"
+        );
         ton.transfer(msg.sender, _amount);
     }
 
@@ -88,6 +103,7 @@ contract TONEscrow is Ownable {
         internal
     {
         Deal storage deal = deals[msg.sender];
+        uint256 tonBalance = ton.balanceOf(address(this));
         require(
             deal.payToken == _payToken,
             "wrong token"
@@ -95,6 +111,10 @@ contract TONEscrow is Ownable {
         require(
             deal.payTokenAmount == _payTokenAmount,
             "wrong amount"
+        );
+        require(
+            tonBalance >= deal.tonAmount,
+            "don't have ton amount"
         );
 
         if (_payToken != address(0)) {

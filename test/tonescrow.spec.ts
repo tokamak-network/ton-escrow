@@ -8,8 +8,8 @@ const { expect } = chai
 chai.use(solidity)
 
 describe("Token deploy", () => {
-  const TOKEN_NAME = 'PCI_ERC20'
-  const TOKEN_SYMBOL = 'PCI'
+  const TOKEN_NAME = 'ERC20'
+  const TOKEN_SYMBOL = 'ERC'
   const TOKEN_INITIAL_SUPPLY = 100000
   const TON_NAME = 'Tokamak'
   const TON_SYMBOL = 'TON'
@@ -27,7 +27,7 @@ describe("Token deploy", () => {
   let escrow : any
   let prov : any
 
-  before(async () => {
+  beforeEach(async () => {
     [ tonOwner, escrowOwner, account1, account2, account3, account4 ] = await ethers.getSigners();
     const erc20Factory = await ethers.getContractFactory("mockERC20");
     prov = ethers.getDefaultProvider();
@@ -122,11 +122,11 @@ describe("Token deploy", () => {
     expect(balance2).to.equal(500)
   });
 
-  //TONEscrow가 500TON을 가지고 있는지 확인합니다.
-  it("TONEscrow.address have 500TON", async () => {
-    const balance1 = await ton.balanceOf(escrow.address)
-    expect(balance1).to.equal(500)
-  });
+  // //TONEscrow가 500TON을 가지고 있는지 확인합니다.
+  // it("TONEscrow.address have 500TON", async () => {
+  //   const balance1 = await ton.balanceOf(escrow.address)
+  //   expect(balance1).to.equal(500)
+  // });
 
   //TONEscrow의 owner는 escrowOwner입니다.
   it("TONEscrow.owner is escrowOwner", async () => {
@@ -189,12 +189,12 @@ describe("Token deploy", () => {
   });
 
 
-  //account1이 ERC20을 가지고 있습니다.
-  it("account1 have the ERC20", async () => {
-    const balance1 = await ERC20.balanceOf(account1.address)
-    // console.log("account1 ERC20 balance : ", balance1.toNumber())
-    expect(balance1).to.equal(TOKEN_INITIAL_SUPPLY)
-  });
+  // //account1이 ERC20을 가지고 있습니다.
+  // it("account1 have the ERC20", async () => {
+  //   const balance1 = await ERC20.balanceOf(account1.address)
+  //   // console.log("account1 ERC20 balance : ", balance1.toNumber())
+  //   expect(balance1).to.equal(TOKEN_INITIAL_SUPPLY)
+  // });
 
   //approve && addDeal 안되어 있을 때 구매
   it("account1 can't buy the Ton before approve && addDeal", async () => {
@@ -335,7 +335,7 @@ describe("Token deploy", () => {
   });
   
   // approve를 넘는 수량을 살 수 없습니다.
-  it("account1 can buy the Ton through TONEscrow", async () => {
+  it("A user cannot buy more than allowance", async () => {
     const tx = await ERC20.connect(account2).approve(
       escrow.address,
       100
@@ -348,7 +348,7 @@ describe("Token deploy", () => {
   });
 
   //ETH기준으로 addDeal생성 후 buy함수 호출 시
-  it("owner can addDeal and account4 call the buy", async () => {
+  it("owner can addDeal and account4 call the function buy", async () => {
     const dealResult = await escrow.connect(escrowOwner).addDeal(
       account4.address,
       50,
@@ -372,7 +372,7 @@ describe("Token deploy", () => {
   });
 
   //ETH기준으로 addDeal생성 후 제대로 전송
-  it("account4 transfer to Escrow CA but amount diff", async () => {
+  it("account4 transfer to Escrow CA exactly", async () => {
     const escrowA = (await escrowOwner.getBalance()).toString()
     // console.log(escrowA)
     const tx = await account4.sendTransaction({
@@ -381,7 +381,7 @@ describe("Token deploy", () => {
     })
     const escrowB = (await escrowOwner.getBalance()).toString()
     const escrowC = escrowB - escrowA
-    // console.log(escrowC)
+    console.log(escrowC)
     await expect((await ton.balanceOf(account4.address)).toNumber()).to.equal(50)
     await expect(escrowC).to.be.above(15000000000)
   });
@@ -425,6 +425,23 @@ describe("Token deploy", () => {
   //   console.log("ETH 보낸 후 account1 : ", (await account1.getBalance()).toString())
   //   console.log("ETH 보낸 후 escrow : ", (await prov.getBalance(escrow.address)).toString())
   //   // await expect(tx).to.be.revertedWith("ERC20: transfer amount exceeds balance")
+  // });
+
+  // it("user can't changer owenr ", async () => {
+  //   const tx = escrow.connect(account3).transferOwnership(
+  //     account4.address
+  //   )
+
+  //   expect(tx).to.be.revertedWith("Ownable: caller is not the owner")
+  // });
+
+  // it("escrowOwner can changer owenr ", async () => {
+  //   const tx = await escrow.connect(escrowOwner).transferOwnership(
+  //     account4.address
+  //   )
+
+  //   const tx2 = await escrow.owner()
+  //   expect(tx2).to.equal(account4.address)
   // });
   
 
