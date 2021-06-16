@@ -76,7 +76,7 @@ contract TONEscrow is Ownable {
 
     function withdraw(uint256 _amount) external onlyOwner {
         require(
-            ton.balanceOf(address(this)) > _amount,
+            ton.balanceOf(address(this)) >= _amount,
             "don't have ton amount"
         );
         ton.transfer(msg.sender, _amount);
