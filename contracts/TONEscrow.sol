@@ -70,9 +70,8 @@ contract TONEscrow is Ownable {
     {   
         Deal storage deal = deals[_payee];
 
-        delete deals[_payee];
-
         emit DealDeled(_payee, deal.tonAmount, deal.payToken, deal.payTokenAmount);
+        delete deals[_payee];
     }
 
     function withdraw(uint256 _amount) external onlyOwner {
@@ -131,7 +130,7 @@ contract TONEscrow is Ownable {
 
         ton.transfer(msg.sender, deal.tonAmount);
 
-        delete deals[msg.sender];
         emit Dealt(msg.sender, deal.tonAmount, _payToken, _payTokenAmount);
+        delete deals[msg.sender];
     }
 }

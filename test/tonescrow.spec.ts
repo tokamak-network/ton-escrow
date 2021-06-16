@@ -1,5 +1,3 @@
-import { isAddress } from "@ethersproject/address"
-import { Wallet } from "@ethersproject/wallet";
 const { AddressZero } = require("@ethersproject/constants");
 const { ethers, network } = require('hardhat')
 const chai = require('chai')
@@ -327,13 +325,40 @@ describe("Token deploy", () => {
     await expect(tx2).to.be.revertedWith("ERC20: transfer amount exceeds allowance")
   });
 
+  //addDeal과 approve 둘다 되어있지만 CA의 ton 수량이 부족할 때
+  it("user can buy after addDeal and approve ", async () => {
+    const tonDeposit = await ton.connect(tonOwner).transfer(
+      escrow.address,
+      10
+    )
+
+    const tx = await escrow.connect(escrowOwner).addDeal(
+      account1.address,
+      50,
+      ERC20.address,
+      150
+    )
+ 
+    const tx2 = await ERC20.connect(account1).approve(
+      escrow.address,
+      150
+    )
+
+    const buyTx = escrow.connect(account1).buy(
+      ERC20.address,
+      150
+    )
+
+    await expect(buyTx).to.be.revertedWith("don't have ton amount")
+  });
+
   //ETH기준으로 addDeal생성 후 buy함수 호출 시
   it("owner can addDeal and account4 call the function buy", async () => {
     const tonDeposit = await ton.connect(tonOwner).transfer(
       escrow.address,
       500
     )
-    
+
     const dealResult = await escrow.connect(escrowOwner).addDeal(
       account4.address,
       50,
@@ -390,6 +415,114 @@ describe("Token deploy", () => {
     ).to.changeBalance(escrowOwner, 15000000000)
   });
   
+  //withdraw ton이 없을때 (수량이 부족할때)
+  it("withdraw the ton but escrow CA don't have ton", async () => {
+    const tx = escrow.connect(escrowOwner).withdraw(
+      400
+    )
+    await expect(tx).to.be.revertedWith("don't have ton amount")
+  });
+
+  //withdraw owner가 아닐때
+  it("user can't withdraw the ton", async () => {
+    const tonDeposit = await ton.connect(tonOwner).transfer(
+      escrow.address,
+      500
+    )
+
+    const tx = escrow.connect(account4).withdraw(
+      400
+    )
+    await expect(tx).to.be.revertedWith("Ownable: caller is not the owner")
+  });
+
+  //withdraw 정상작동(owner고 ton도 있음)
+  it("user can't withdraw the ton", async () => {
+    const tonDeposit = await ton.connect(tonOwner).transfer(
+      escrow.address,
+      500
+    )
+
+    const tx = await escrow.connect(escrowOwner).withdraw(
+      400
+    )
+    const tonBalance = await ton.balanceOf(escrowOwner.address)
+    await expect(tonBalance).to.equal(400)
+  });
+
+  //addDeal event check
+  it("addDeal event check", async () => {
+    const tx = await escrow.connect(escrowOwner).addDeal(
+      account1.address,
+      50,
+      ERC20.address,
+      150
+    )
+    
+    await expect(tx).to.emit(escrow, 'DealAdded').withArgs(account1.address, 50, ERC20.address, 150)
+  });
+
+  //DealDeled event check
+  it("DealDeled event check", async () => {
+    const tx = await escrow.connect(escrowOwner).addDeal(
+      account1.address,
+      50,
+      ERC20.address,
+      150
+    )
+
+    const tx2 = escrow.connect(escrowOwner).delDeal(
+      account1.address
+    )
+    
+    await expect(tx2).to.emit(escrow, 'DealDeled').withArgs(account1.address, 50, ERC20.address, 150)
+  });
+
+  //Dealt event check
+  it("Dealt event check", async () => {
+    const tonDeposit = await ton.connect(tonOwner).transfer(
+      escrow.address,
+      500
+    )
+
+    const tx = await escrow.connect(escrowOwner).addDeal(
+      account1.address,
+      50,
+      ERC20.address,
+      150
+    )
+
+    const tx2 = await ERC20.connect(account1).approve(
+      escrow.address,
+      150
+    )
+
+    const buyTx = escrow.connect(account1).buy(
+      ERC20.address,
+      150
+    )
+    
+    await expect(buyTx).to.emit(escrow, 'Dealt').withArgs(account1.address, 50, ERC20.address, 150)
+  });
+
+  //user는 owner를 바꿀 수 없습니다.
+  it("user can't changer owenr ", async () => {
+    const tx = escrow.connect(account3).transferOwnership(
+      account4.address
+    )
+
+    expect(tx).to.be.revertedWith("Ownable: caller is not the owner")
+  });
+
+  //owner는 owner를 바꿀 수 없습니다.
+  it("escrowOwner can changer owenr ", async () => {
+    const tx = await escrow.connect(escrowOwner).transferOwnership(
+      account4.address
+    )
+
+    const tx2 = await escrow.owner()
+    expect(tx2).to.equal(account4.address)
+  });
 })
 
 export default {
