@@ -4,8 +4,12 @@ pragma solidity ^0.8.0;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
 
 contract TONEscrow is Ownable {
+    using SafeERC20 for IERC20;
+    
     event DealAdded(
         address payee,
         uint256 tonAmount,
@@ -32,6 +36,7 @@ contract TONEscrow is Ownable {
         uint256 payTokenAmount;
         address payToken;
     }
+    
 
     IERC20 public ton;
     mapping(address => Deal) public deals;
@@ -119,14 +124,9 @@ contract TONEscrow is Ownable {
 
         if (_payToken != address(0)) {
             IERC20 payToken = IERC20(_payToken);
-            uint256 balance1 = payToken.balanceOf(owner());
             uint256 tokenAllowance = payToken.allowance(msg.sender, address(this));
             require(tokenAllowance >= _payTokenAmount, "ERC20: transfer amount exceeds allowance");
-            payToken.transferFrom(msg.sender, owner(), _payTokenAmount);
-            require(
-                payToken.balanceOf(owner()) - balance1 == _payTokenAmount,
-                "Failed to transfer payToken"
-            );
+            payToken.safeTransferFrom(msg.sender, owner(), _payTokenAmount);
         }
 
         ton.transfer(msg.sender, deal.tonAmount);
