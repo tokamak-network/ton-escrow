@@ -51,33 +51,33 @@ beforeEach(async () => {
 ## TON 설정 체크<br>
 ```javascript
 describe('basic test', () => {
-    it("TON name", async () => {
-      const tokenName = await ton.name()
-      expect(tokenName).to.equal(TON_NAME)
-    });
-  
-    it("TON symbol", async () => {
-      const tokenSymbol= await ton.symbol()
-      expect(tokenSymbol).to.equal(TON_SYMBOL)
-    });
-  
-    it("TON is totalSupply = TON_INITIAL_SUPPLY ", async () => {
-      const tokenSupply = await ton.totalSupply()
-      expect(tokenSupply).to.equal(TON_INITIAL_SUPPLY)
-    });
-  
-    //tonOwner는 TON을 가지고 있습니다.
-    it("tonOwner have a TON tonOwner.balance = TON_INITIAL_SUPPLY ", async () => {
-      const balance1 = await ton.balanceOf(tonOwner.address)
-      expect(balance1).to.equal(TON_INITIAL_SUPPLY)
-    });
-  
-    //user는 TON이 없습니다.
-    it("user have a TON account1.balance = 0", async () => {
-      const balance1 = await ton.balanceOf(account1.address)
-      expect(balance1).to.equal(0)
-    });
-  })
+  it("TON name", async () => {
+    const tokenName = await ton.name()
+    expect(tokenName).to.equal(TON_NAME)
+  });
+
+  it("TON symbol", async () => {
+    const tokenSymbol= await ton.symbol()
+    expect(tokenSymbol).to.equal(TON_SYMBOL)
+  });
+
+  it("TON is totalSupply = TON_INITIAL_SUPPLY ", async () => {
+    const tokenSupply = await ton.totalSupply()
+    expect(tokenSupply).to.equal(TON_INITIAL_SUPPLY)
+  });
+
+  //tonOwner는 TON을 가지고 있습니다.
+  it("tonOwner have a TON tonOwner.balance = TON_INITIAL_SUPPLY ", async () => {
+    const balance1 = await ton.balanceOf(tonOwner.address)
+    expect(balance1).to.equal(TON_INITIAL_SUPPLY)
+  });
+
+  //user는 TON이 없습니다.
+  it("user have a TON account1.balance = 0", async () => {
+    const balance1 = await ton.balanceOf(account1.address)
+    expect(balance1).to.equal(0)
+  });
+})
   
 ```
 
@@ -104,7 +104,7 @@ describe('basic test', () => {
 
 ## addDeal and dealDeal 테스트<br>
 ```javascript
-    describe('addDeal test', () => {
+  describe('addDeal test', () => {
      //escrowOwner가 account1이 ERC20을 150만큼 입금하면 50만큼 ton을 받을 수 있는 addDeal을 만듭니다.
     it("escrowOwner can addDeal", async () => {
       await escrow.connect(escrowOwner).addDeal(account1.address,50,ERC20.address,150)
@@ -253,7 +253,7 @@ describe('basic test', () => {
 
 ## addDeal 에 따른 ETH 테스트 <br>
 ```javascript
-    describe('ETH transfer test', () => {
+  describe('ETH transfer test', () => {
     beforeEach(async () => {
       await ton.connect(tonOwner).transfer(escrow.address,500)
       await escrow.connect(escrowOwner).addDeal(account4.address,50,AddressZero,15000000000)
