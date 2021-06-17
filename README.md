@@ -294,6 +294,44 @@ describe('basic test', () => {
 
 ## withdraw 테스트 <br>
 ```javascript
+  describe('withdraw test', () => {
+    beforeEach(async () => {
+      await ton.connect(tonOwner).transfer(escrow.address,500)
+    })
+    
+    //withdraw owner가 아닐때
+    it("user can't withdraw the ton", async () => {
+      const tx = escrow.connect(account4).withdraw(400)
+      await expect(tx).to.be.revertedWith("Ownable: caller is not the owner")
+    });
+
+    //CA가 가지고 있는 ton 보다 많은 수량 withdraw
+    it("withdraw the ton but escrow CA don't have ton", async () => {
+      const tx = escrow.connect(escrowOwner).withdraw(600)
+      await expect(tx).to.be.revertedWith("don't have ton amount")
+    });
+
+    //CA가 가지고 있는 ton과 같은 수량 withdraw
+    it("withdraw the all ton amount", async () => {
+      await escrow.connect(escrowOwner).withdraw(500)
+      const tonBalance = await ton.balanceOf(escrowOwner.address)
+      await expect(tonBalance).to.equal(500)
+    });
+  
+    //CA가 가지고 있는 ton 보다 작은 수량 withdraw
+    it("owner can withdraw the ton", async () => {
+      await escrow.connect(escrowOwner).withdraw(400) 
+      const tonBalance = await ton.balanceOf(escrowOwner.address)
+      await expect(tonBalance).to.equal(400)
+    });
+  })
+
+```
+
+<br>
+
+## event 테스트 <br>
+```javascript
   describe('event check', () => {
     let addDealTx : any
     beforeEach(async () =>{
