@@ -1,3 +1,5 @@
+import { BigNumber } from "@ethersproject/bignumber";
+
 const { AddressZero } = require("@ethersproject/constants");
 const { ethers, network } = require('hardhat')
 const chai = require('chai')
@@ -6,7 +8,7 @@ const { expect } = chai
 
 chai.use(solidity)
 
-describe("Token deploy && basic test", () => {
+describe("Token deploy", () => {
   const TOKEN_NAME = 'ERC20'
   const TOKEN_SYMBOL = 'ERC'
   const TOKEN_INITIAL_SUPPLY = 100000
@@ -51,59 +53,47 @@ describe("Token deploy && basic test", () => {
       ton.address
     )
   })
+  describe('basic test', () => {
+    it("TON name", async () => {
+      const tokenName = await ton.name()
+      expect(tokenName).to.equal(TON_NAME)
+    });
+  
+    it("TON symbol", async () => {
+      const tokenSymbol= await ton.symbol()
+      expect(tokenSymbol).to.equal(TON_SYMBOL)
+    });
+  
+    it("TON is totalSupply = TON_INITIAL_SUPPLY ", async () => {
+      const tokenSupply = await ton.totalSupply()
+      expect(tokenSupply).to.equal(TON_INITIAL_SUPPLY)
+    });
+  
+    //tonOwner는 TON을 가지고 있습니다.
+    it("tonOwner have a TON tonOwner.balance = TON_INITIAL_SUPPLY ", async () => {
+      const balance1 = await ton.balanceOf(tonOwner.address)
+      expect(balance1).to.equal(TON_INITIAL_SUPPLY)
+    });
+  
+    //user는 TON이 없습니다.
+    it("user have a TON account1.balance = 0", async () => {
+      const balance1 = await ton.balanceOf(account1.address)
+      expect(balance1).to.equal(0)
+    });
+  
+    //TONEscrow의 owner는 escrowOwner입니다.
+    it("TONEscrow.owner is escrowOwner", async () => {
+      const owner = await escrow.owner()
+      expect(owner).to.equal(escrowOwner.address)
+    });
+  
+    //TONEscrow의 owner는 user가 아닙니다.
+    it("TONEscrow.owner is not user", async () => {
+      const owner = await escrow.owner()
+      expect(owner).to.not.equal(account1.address)
+    });
+  })
 
-  it("TON name", async () => {
-    const tokenName = await ton.name()
-    expect(tokenName).to.equal(TON_NAME)
-  });
-
-  it("TON symbol", async () => {
-    const tokenSymbol= await ton.symbol()
-    expect(tokenSymbol).to.equal(TON_SYMBOL)
-  });
-
-  it("TON is totalSupply = TON_INITIAL_SUPPLY ", async () => {
-    const tokenSupply = await ton.totalSupply()
-    expect(tokenSupply).to.equal(TON_INITIAL_SUPPLY)
-  });
-
-  //tonOwner는 TON을 가지고 있습니다.
-  it("tonOwner have a TON tonOwner.balance = TON_INITIAL_SUPPLY ", async () => {
-    const balance1 = await ton.balanceOf(tonOwner.address)
-    expect(balance1).to.equal(TON_INITIAL_SUPPLY)
-  });
-
-  //user는 TON이 없습니다.
-  it("user have a TON account1.balance = 0", async () => {
-    const balance1 = await ton.balanceOf(account1.address)
-    expect(balance1).to.equal(0)
-  });
-
-  //tonOwner가 escrowCA에 500TON을 전송합니다.
-  it("tonOwner transfer to escrow CA", async () => {
-    const tx = await ton.connect(tonOwner).transfer(
-      escrow.address,
-      500
-    )
-    await tx.wait()
-
-    const balance1 = await ton.balanceOf(tonOwner.address)
-    const balance2 = await ton.balanceOf(escrow.address)
-    expect(balance1).to.equal(TON_INITIAL_SUPPLY-500)
-    expect(balance2).to.equal(500)
-  });
-
-  //TONEscrow의 owner는 escrowOwner입니다.
-  it("TONEscrow.owner is escrowOwner", async () => {
-    const owner = await escrow.owner()
-    expect(owner).to.equal(escrowOwner.address)
-  });
-
-  //TONEscrow의 owner는 user가 아닙니다.
-  it("TONEscrow.owner is not user", async () => {
-    const owner = await escrow.owner()
-    expect(owner).to.not.equal(account1.address)
-  });
 
   describe('addDeal test', () => {
      //escrowOwner가 account1이 ERC20을 150만큼 입금하면 50만큼 ton을 받을 수 있는 addDeal을 만듭니다.
@@ -254,9 +244,16 @@ describe("Token deploy && basic test", () => {
       await expect(tx2).to.be.revertedWith("don't call buyer throgh ETH")
     });
 
-    //ETH기준으로 addDeal생성 후 tx전송 시 amount가 틀릴 경우
+    //ETH기준으로 addDeal생성 후 tx전송 시 amount(작게)가 틀릴 경우
     it("user transfer to Escrow CA but amount diff", async () => {
       const tx = account4.sendTransaction({to: escrow.address,value: 10000000000})
+
+      await expect(tx).to.be.revertedWith("wrong amount")
+    });
+
+    //ETH기준으로 addDeal생성 후 tx전송 시 amount(작크게)가 틀릴 경우
+    it("user transfer to Escrow CA but amount diff", async () => {
+      const tx = account4.sendTransaction({to: escrow.address,value: 20000000000})
 
       await expect(tx).to.be.revertedWith("wrong amount")
     });
@@ -265,45 +262,68 @@ describe("Token deploy && basic test", () => {
     it("user transfer to Escrow CA exactly", async () => {
       await expect(() =>
         account4.sendTransaction({to:escrow.address, gasPrice: 0, value: 15000000000})
-      ).to.changeBalance(escrowOwner, 15000000000)
+      ).to.changeBalances([account4, escrowOwner], [-15000000000, 15000000000])
     });
   })
 
+  describe('why different balance test && gaslimit compare', () => {
+    //escrowOwner가 addDeal을 한 후 account3가 escrow CA에 ETH를 전송하여서 TON을 구매합니다.
+    it("owner addDeal ether and user can buy", async () => {
+      await ton.connect(tonOwner).transfer(escrow.address,500)
+      await escrow.connect(escrowOwner).addDeal(account4.address,50,AddressZero,15000000000)
+      const escrowA = (await escrowOwner.getBalance())
+      const bigNumberA = (BigNumber.from(escrowA._hex))
+      await account4.sendTransaction({to: escrow.address, value: 15000000000})
+      await expect((await ton.balanceOf(account4.address)).toNumber()).to.equal(50)
+      const escrowB = (await escrowOwner.getBalance())
+      const bigNumberB = (BigNumber.from(escrowB._hex))
+      const escrowC = bigNumberB.sub(bigNumberA)
+      // console.log(escrowC.toString())
+      await expect(escrowC).to.equal(15000000000)
+    });
+
+    //escrowOwner가 addDeal을 한 후 account3가 escrow CA에 ETH를 전송하여서 TON을 구매합니다.
+    it("gasLimit is above 89000", async () => {
+      await ton.connect(tonOwner).transfer(escrow.address,500)
+      await escrow.connect(escrowOwner).addDeal(account4.address,50,AddressZero,15000000000)
+      const tx = await account4.sendTransaction({to: escrow.address, value: 15000000000})
+      console.log("TONEscrow transfer to ton buy | gasLimit :", tx.gasLimit.toNumber())
+      const tx2 = await account2.sendTransaction({to: account1.address, value: 15000000000})
+      console.log("basic transfer to account1 | gasLimit :", tx2.gasLimit.toNumber())
+    });
+  })
+
+  describe('withdraw test', () => {
+    beforeEach(async () => {
+      await ton.connect(tonOwner).transfer(escrow.address,500)
+    })
+    
+    //withdraw owner가 아닐때
+    it("user can't withdraw the ton", async () => {
+      const tx = escrow.connect(account4).withdraw(400)
+      await expect(tx).to.be.revertedWith("Ownable: caller is not the owner")
+    });
+
+    //CA가 가지고 있는 ton 보다 많은 수량 withdraw
+    it("withdraw the ton but escrow CA don't have ton", async () => {
+      const tx = escrow.connect(escrowOwner).withdraw(600)
+      await expect(tx).to.be.revertedWith("don't have ton amount")
+    });
+
+    //CA가 가지고 있는 ton과 같은 수량 withdraw
+    it("withdraw the all ton amount", async () => {
+      await escrow.connect(escrowOwner).withdraw(500)
+      const tonBalance = await ton.balanceOf(escrowOwner.address)
+      await expect(tonBalance).to.equal(500)
+    });
   
-  //withdraw ton이 없을때 (수량이 부족할때)
-  it("withdraw the ton but escrow CA don't have ton", async () => {
-    const tx = escrow.connect(escrowOwner).withdraw(
-      400
-    )
-    await expect(tx).to.be.revertedWith("don't have ton amount")
-  });
-
-  //withdraw owner가 아닐때
-  it("user can't withdraw the ton", async () => {
-    const tonDeposit = await ton.connect(tonOwner).transfer(
-      escrow.address,
-      500
-    )
-
-    const tx = escrow.connect(account4).withdraw(
-      400
-    )
-    await expect(tx).to.be.revertedWith("Ownable: caller is not the owner")
-  });
-
-  //withdraw 정상작동(owner고 ton도 있음)
-  it("user can withdraw the ton", async () => {
-    const tonDeposit = await ton.connect(tonOwner).transfer(
-      escrow.address,
-      500
-    )
-
-    const tx = await escrow.connect(escrowOwner).withdraw(
-      400
-    )
-    const tonBalance = await ton.balanceOf(escrowOwner.address)
-    await expect(tonBalance).to.equal(400)
-  });
+    //CA가 가지고 있는 ton 보다 작은 수량 withdraw
+    it("owner can withdraw the ton", async () => {
+      await escrow.connect(escrowOwner).withdraw(400) 
+      const tonBalance = await ton.balanceOf(escrowOwner.address)
+      await expect(tonBalance).to.equal(400)
+    });
+  })
 
   describe('event check', () => {
     let addDealTx : any
@@ -331,25 +351,22 @@ describe("Token deploy && basic test", () => {
     });
   })
 
+  describe('owner change test', () => {
+    //user는 owner를 바꿀 수 없습니다.
+    it("user can't changer owenr ", async () => {
+      const tx = escrow.connect(account3).transferOwnership(account4.address)
+      expect(tx).to.be.revertedWith("Ownable: caller is not the owner")
+    });
   
-  //user는 owner를 바꿀 수 없습니다.
-  it("user can't changer owenr ", async () => {
-    const tx = escrow.connect(account3).transferOwnership(
-      account4.address
-    )
+    //owner는 owner를 바꿀 수 없습니다.
+    it("escrowOwner can changer owenr ", async () => {
+      await escrow.connect(escrowOwner).transferOwnership(account4.address)
+      const tx = await escrow.owner()
+      expect(tx).to.equal(account4.address)
+    });
+  })
 
-    expect(tx).to.be.revertedWith("Ownable: caller is not the owner")
-  });
-
-  //owner는 owner를 바꿀 수 없습니다.
-  it("escrowOwner can changer owenr ", async () => {
-    const tx = await escrow.connect(escrowOwner).transferOwnership(
-      account4.address
-    )
-
-    const tx2 = await escrow.owner()
-    expect(tx2).to.equal(account4.address)
-  });
+  
 })
 
 export default {
