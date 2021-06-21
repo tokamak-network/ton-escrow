@@ -6,6 +6,20 @@ npx hardhat test
 ```
 <br>
 
+deploy : need the account(deploy), INFURA_API_KEY
+```
+npx hardhat run --network rinkeby scripts/deploy.ts
+```
+
+<br>
+
+verify : need the etherscanAPI, CA, tonAddress, managerAddress
+```
+npx hardhat verify --network rinkeby tonescrowAddress tonAddress
+```
+<br>
+
+
 ## 초기 설정
 
 tonOwner -> ton contract 배포자 -> TON을 100000개 가지고 있습니다.<br>

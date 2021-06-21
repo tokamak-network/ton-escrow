@@ -16,7 +16,12 @@ async function main() {
     await escrow.connect(deployer).transferOwnership(rinkManagerAddress)
     const escrowTonAddress = await escrow.ton()
     console.log("escrowTonAddress : ", escrowTonAddress)
+
+    //gas: 9500000,
+    // gasMultiplier: 100,
+    // blockGasLimit: 124500000,
 }
+
 main()
     .then(() => process.exit(0))
     .catch(error => {
