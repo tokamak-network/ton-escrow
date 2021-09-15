@@ -109,7 +109,12 @@ describe("Token deploy", () => {
 
     //owner가 아니면 addDeal을 할 수 없습니다.
     it("not owner can't addDeal", async () => {
-      const dealResult = escrow.connect(account2).addDeal(account1.address,50,ERC20.address,150)
+      const dealResult = escrow.connect(account2).addDeal(
+        account1.address,
+        50,
+        ERC20.address,
+        150
+      )
       
       await expect(dealResult).to.be.revertedWith("Ownable: caller is not the owner")
     });
