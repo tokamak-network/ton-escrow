@@ -1,0 +1,11 @@
+# Directories #
+artifacts/
+cache/
+node_modules/
+
+# test sample #
+test/tonescrow.spec2.json
+test/tonescrow.spec copy.ts
+
+# env file #
+.env

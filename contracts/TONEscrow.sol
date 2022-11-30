@@ -4,8 +4,12 @@ pragma solidity ^0.8.0;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
 
 contract TONEscrow is Ownable {
+    using SafeERC20 for IERC20;
+    
     event DealAdded(
         address payee,
         uint256 tonAmount,
@@ -20,11 +24,19 @@ contract TONEscrow is Ownable {
         uint256 payTokenAmount
     );
 
+    event DealDeled(
+        address payee,
+        uint256 tonAmount,
+        address payToken,
+        uint256 payTokenAmount
+    );
+
     struct Deal {
         uint256 tonAmount;
         uint256 payTokenAmount;
         address payToken;
     }
+    
 
     IERC20 public ton;
     mapping(address => Deal) public deals;
@@ -55,11 +67,18 @@ contract TONEscrow is Ownable {
     )
         external
         onlyOwner
-    {
+    {   
+        Deal storage deal = deals[_payee];
+
+        emit DealDeled(_payee, deal.tonAmount, deal.payToken, deal.payTokenAmount);
         delete deals[_payee];
     }
 
     function withdraw(uint256 _amount) external onlyOwner {
+        require(
+            ton.balanceOf(address(this)) >= _amount,
+            "don't have ton amount"
+        );
         ton.transfer(msg.sender, _amount);
     }
 
@@ -69,6 +88,10 @@ contract TONEscrow is Ownable {
     )
         external
     {
+        require(
+            _payToken != address(0),
+            "don't call buyer throgh ETH"
+        );
         _buy(_payToken, _payTokenAmount);
     }
 
@@ -84,6 +107,7 @@ contract TONEscrow is Ownable {
         internal
     {
         Deal storage deal = deals[msg.sender];
+        uint256 tonBalance = ton.balanceOf(address(this));
         require(
             deal.payToken == _payToken,
             "wrong token"
@@ -92,20 +116,21 @@ contract TONEscrow is Ownable {
             deal.payTokenAmount == _payTokenAmount,
             "wrong amount"
         );
+        require(
+            tonBalance >= deal.tonAmount,
+            "don't have ton amount"
+        );
 
         if (_payToken != address(0)) {
             IERC20 payToken = IERC20(_payToken);
-            uint256 balance1 = payToken.balanceOf(owner());
-            payToken.transferFrom(msg.sender, owner(), _payTokenAmount);
-            require(
-                payToken.balanceOf(owner()) - balance1 == _payTokenAmount,
-                "Failed to transfer payToken"
-            );
+            uint256 tokenAllowance = payToken.allowance(msg.sender, address(this));
+            require(tokenAllowance >= _payTokenAmount, "ERC20: transfer amount exceeds allowance");
+            payToken.safeTransferFrom(msg.sender, owner(), _payTokenAmount);
         }
 
         ton.transfer(msg.sender, deal.tonAmount);
 
-        delete deals[msg.sender];
         emit Dealt(msg.sender, deal.tonAmount, _payToken, _payTokenAmount);
+        delete deals[msg.sender];
     }
 }
